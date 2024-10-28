@@ -5,7 +5,8 @@ RUN apt-get update && apt-get install -y openssl libssl-dev
 
 FROM base AS build
 COPY ./package.json ./tsconfig.json ./
-RUN yarn install --frozen-lockfile
+RUN yarn install --frozen-lockfile --network-timeout 100000
+RUN npm install
 COPY . .
 RUN yarn prisma:generate && yarn build
 
@@ -16,7 +17,4 @@ COPY --from=build /usr/src/app/package.json ./package.json
 COPY --from=build /usr/src/app/prisma ./prisma
 # COPY --from=build /usr/src/app/.env ./.env
 
-EXPOSE 8000
-
 CMD ["yarn", "start"]
-
