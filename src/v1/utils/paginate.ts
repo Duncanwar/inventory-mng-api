@@ -4,7 +4,7 @@ import { DefaultArgs } from "@prisma/client/runtime/library";
 export const paginate = async (
   model: Prisma.ProductsDelegate<DefaultArgs>,
   page = 1, // Default to 1 to avoid skipping results
-  size = 100, // Large default size to fetch all items
+  size = 10, // Large default size to fetch all items
   filter: Record<string, any> = {}
 ) => {
   // If page or size is 0, retrieve all without pagination
