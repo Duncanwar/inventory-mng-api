@@ -86,20 +86,20 @@ export default class ProductController {
 
   static getAllProducts = catchAsync(async (req, res) => {
     try {
-      const { Category, minQuantity, maxQuantity } = req.query;
-      const page = parseInt(req.query.page as string) || 0;
-      const size = parseInt(req.query.size as string) || 0;
+      // const { Category, minQuantity, maxQuantity } = req.query;
+      // const page = parseInt(req.query.page as string) || 0;
+      // const size = parseInt(req.query.size as string) || 0;
 
-      const filter: Record<string, any> = {};
+      // const filter: Record<string, any> = {};
 
-      if (Category) filter.Category = Category as string;
+      // if (Category) filter.Category = Category as string;
 
-      if (minQuantity || maxQuantity) {
-        filter.Quantity = {};
-        if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
-      }
+      // if (minQuantity || maxQuantity) {
+      //   filter.Quantity = {};
+      //   if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
+      // }
 
-      const products = await paginate(prisma.products, page, size, filter);
+      const products = await paginate(prisma.products);
       return Response.send(res, 200, "Retrieve Products", products);
     } catch (error) {}
   });
