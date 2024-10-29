@@ -3,11 +3,9 @@ import catchAsync from "../utils/catchAsync";
 import prisma from "../../client";
 import { paginate } from "../utils/paginate";
 import Response from "../utils/response";
-import morgan from "morgan";
 
 export default class ProductController {
   static findProductById = async (id: string) => {
-    console.log("problem here");
     return await prisma.products.findUnique({ where: { ID: id } });
   };
 
@@ -87,53 +85,21 @@ export default class ProductController {
 
   static getAllProducts = catchAsync(async (req, res) => {
     try {
-      // const { Category, minQuantity, maxQuantity } = req.query;
-      // const page = parseInt(req.query.page as string) || 0;
-      // const size = parseInt(req.query.size as string) || 0;
+      const { Category, minQuantity, maxQuantity } = req.query;
+      const page = parseInt(req.query.page as string) || 0;
+      const size = parseInt(req.query.size as string) || 0;
 
-      // const filter: Record<string, any> = {};
+      const filter: Record<string, any> = {};
 
-      // if (Category) filter.Category = Category as string;
+      if (Category) filter.Category = Category as string;
 
-      // if (minQuantity || maxQuantity) {
-      //   filter.Quantity = {};
-      //   if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
-      // }
-      // , page, size, filter
-      const products = {
-        data: {
-          products: [
-            {
-              ID: "671abf89b980f96cb5bd9402",
-              Name: "Estastic",
-              Quantity: 50,
-              Category: "Life",
-            },
-            {
-              ID: "671ac2dc8ef513858965e32e",
-              Name: "Apple",
-              Quantity: 9,
-              Category: "Fruits",
-            },
-            {
-              ID: "671ad0b2cf4df0f728c8a2e1",
-              Name: "Mangoes",
-              Quantity: 0,
-              Category: "Fruits",
-            },
-            {
-              ID: "671ad0bbcf4df0f728c8a2e2",
-              Name: "Bannana",
-              Quantity: 0,
-              Category: "Fruits",
-            },
-          ],
-        },
-      };
-      //  await prisma.products.findMany();
+      if (minQuantity || maxQuantity) {
+        filter.Quantity = {};
+        if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
+      }
+
+      const products = await paginate(prisma.products, page, size, filter);
       return Response.send(res, 200, "Retrieve Products", products);
-    } catch (error) {
-      console.error(error);
-    }
+    } catch (error) {}
   });
 }
