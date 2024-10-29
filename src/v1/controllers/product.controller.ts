@@ -3,6 +3,7 @@ import catchAsync from "../utils/catchAsync";
 import prisma from "../../client";
 import { paginate } from "../utils/paginate";
 import Response from "../utils/response";
+import morgan from "morgan";
 
 export default class ProductController {
   static findProductById = async (id: string) => {
@@ -101,6 +102,8 @@ export default class ProductController {
       // , page, size, filter
       const products = await prisma.products.findMany();
       return Response.send(res, 200, "Retrieve Products", products);
-    } catch (error) {}
+    } catch (error) {
+      console.error(error);
+    }
   });
 }
