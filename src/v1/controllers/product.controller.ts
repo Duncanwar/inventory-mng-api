@@ -98,7 +98,7 @@ export default class ProductController {
       //   filter.Quantity = {};
       //   if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
       // }
-
+      // , page, size, filter
       const products = await paginate(prisma.products);
       return Response.send(res, 200, "Retrieve Products", products);
     } catch (error) {}
