@@ -6,6 +6,7 @@ import Response from "../utils/response";
 
 export default class ProductController {
   static findProductById = async (id: string) => {
+    console.log("problem here");
     return await prisma.products.findUnique({ where: { ID: id } });
   };
 
