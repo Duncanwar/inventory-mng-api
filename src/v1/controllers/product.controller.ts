@@ -3,6 +3,12 @@ import catchAsync from "../utils/catchAsync";
 import prisma from "../../client";
 import { paginate } from "../utils/paginate";
 import Response from "../utils/response";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "../utils/exception";
 
 export default class ProductController {
   static findProductById = async (id: string) => {
@@ -11,15 +17,12 @@ export default class ProductController {
 
   static createOneProduct = catchAsync(async (req, res) => {
     const { Name, Quantity, Category } = req.body;
-    if (!Name || Quantity === undefined || !Category) {
-      return res.status(400).json("Missing required fields");
-    }
 
     const productExists = await prisma.products.findUnique({
       where: { Name },
     });
     if (productExists) {
-      return Response.send(res, 409, "exists", productExists);
+      throw new ConflictException("Product already exists");
     }
 
     const product = await prisma.products.create({
@@ -35,52 +38,47 @@ export default class ProductController {
     const { id } = req.params;
     const { Quantity, ...data } = req.body;
 
-    if (Quantity < 0) return res.status(409).json("Invalid Input");
+    if (Quantity < 0)
+      throw new ForbiddenException("Product must be greater than zero");
 
     const productExists = await this.findProductById(id);
-    if (!productExists)
-      return Response.send(
-        res,
-        400,
-        "The product to be updated is not present"
-      );
+    if (!productExists) throw new NotFoundException("Product not Found");
 
     const updateProduct = await prisma.products.update({
       where: { ID: id },
       data: { Quantity, ...data },
     });
+
     addLog("Updated", id, { Quantity, ...data });
     return Response.send(res, 200, "Updated", updateProduct);
   });
 
   static deleteOneProduct = catchAsync(async (req, res) => {
     const { id } = req.params;
-    if (!id) return res.status(400).json("ID not provided");
+    if (!id) throw new BadRequestException("productId is required");
 
     const product = await this.findProductById(id);
-    if (!product) return res.status(404).json("Product not found");
+    if (!product) throw new NotFoundException("Product not Found");
 
     await prisma.products.delete({ where: { ID: id } });
 
     if (product?.Quantity ?? 0 > 0)
-      return res
-        .status(200)
-        .json("The product to be deleted has quantity greater than zero");
+      throw new ForbiddenException("Product must be greater than zero");
 
     const afterDelete = await prisma.products.delete({ where: { ID: id } });
 
-    addLog("Deleted", id, {});
+    addLog("Deleted", id, { afterDelete });
 
     return Response.send(res, 200, "Deleted", afterDelete);
   });
 
   static getOneProduct = catchAsync(async (req, res) => {
     const { id } = req.params;
-    if (!id) return res.status(400).json("ID not provided");
+    if (!id) throw new BadRequestException("productId is required");
 
     const product = await this.findProductById(id);
-    if (!product) return res.status(404).json("The product is not present");
-    return res.status(200).json({ msg: "retrieve", data: product });
+    if (!product) throw new NotFoundException("Product not Found");
+    return Response.send(res, 200, "retrieve", product);
   });
 
   static getAllProducts = catchAsync(async (req, res) => {
