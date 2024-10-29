@@ -100,7 +100,37 @@ export default class ProductController {
       //   if (maxQuantity) filter.Quantity.lt = parseInt(maxQuantity as string);
       // }
       // , page, size, filter
-      const products = await prisma.products.findMany();
+      const products = {
+        data: {
+          products: [
+            {
+              ID: "671abf89b980f96cb5bd9402",
+              Name: "Estastic",
+              Quantity: 50,
+              Category: "Life",
+            },
+            {
+              ID: "671ac2dc8ef513858965e32e",
+              Name: "Apple",
+              Quantity: 9,
+              Category: "Fruits",
+            },
+            {
+              ID: "671ad0b2cf4df0f728c8a2e1",
+              Name: "Mangoes",
+              Quantity: 0,
+              Category: "Fruits",
+            },
+            {
+              ID: "671ad0bbcf4df0f728c8a2e2",
+              Name: "Bannana",
+              Quantity: 0,
+              Category: "Fruits",
+            },
+          ],
+        },
+      };
+      //  await prisma.products.findMany();
       return Response.send(res, 200, "Retrieve Products", products);
     } catch (error) {
       console.error(error);
