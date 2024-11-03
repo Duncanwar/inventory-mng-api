@@ -1,4 +1,3 @@
-// product.controller.test.ts
 import { Request, Response } from "express";
 import ProductController from "./product.controller";
 import prismaClient from "../../../client";
@@ -18,43 +17,34 @@ describe("ProductController.findProductById", () => {
   };
 
   it("should return 400 if id is not provided", async () => {
-    const req = { params: {} } as Request; // Simulating a missing id in request params
+    const req = { params: {} } as Request;
     const res = mockResponse();
 
-    console.log(req);
-
-    // await ProductController.findProductById(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(400);
-    expect(res.json).toHaveBeenCalledWith({
-      message: "Missing required parameter: id",
-    });
+    // Assuming findProductById would return 400 status for missing id
+    await expect(ProductController.findProductById("")).rejects.toThrowError(
+      "Missing required parameter: id"
+    );
   });
 
   it("should return 200 with product data if id is valid", async () => {
     const req = { params: { id: "valid-product-id" } } as unknown as Request;
     const res = mockResponse();
 
-    const mockProduct = { id: "valid-product-id", name: "Sample Product" };
+    const mockProduct = { ID: "valid-product-id", Name: "Sample Product" };
     (prismaClient.products.findUnique as jest.Mock).mockResolvedValue(
       mockProduct
     );
 
-    // await ProductController.findProductById(req, res);
+    const product = await ProductController.findProductById("valid-product-id");
 
-    expect(res.status).toHaveBeenCalledWith(200);
-    expect(res.json).toHaveBeenCalledWith(mockProduct);
+    expect(product).toEqual(mockProduct);
   });
 
   it("should return 404 if product is not found", async () => {
-    const req = { params: { id: "non-existing-id" } } as unknown as Request;
-    const res = mockResponse();
+    (prismaClient.products.findUnique as jest.Mock).mockResolvedValue(null);
 
-    (prismaClient.products.findUnique as jest.Mock).mockResolvedValue(null); // Simulating no product found
-
-    // await ProductController.findProductById(req, res);
-
-    expect(res.status).toHaveBeenCalledWith(404);
-    expect(res.json).toHaveBeenCalledWith({ message: "Product not found" });
+    await expect(
+      ProductController.findProductById("non-existing-id")
+    ).rejects.toThrowError("Product not found");
   });
 });
