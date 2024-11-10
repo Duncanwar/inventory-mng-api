@@ -13,7 +13,7 @@ describe("ProductController.findProductById", () => {
     const res = {} as Response;
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
-    // return res;
+    return res;
   };
 
   it("should return 400 if id is not provided", async () => {
