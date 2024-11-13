@@ -1,6 +1,6 @@
 import { Router } from "express";
 
-import EventLoggerController from "../controllers/log.controller";
+import EventLoggerController from "../controllers/log/log.controller";
 
 const router = Router();
 

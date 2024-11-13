@@ -1,5 +1,5 @@
-import { getLogs } from "../utils/eventLogger";
-import catchAsync from "../utils/catchAsync";
+import { getLogs } from "../../utils/eventLogger";
+import catchAsync from "../../utils/catchAsync";
 
 export default class EventLoggerController {
   static getLogs = catchAsync(async (req, res) => {

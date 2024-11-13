@@ -1,14 +1,14 @@
-import { addLog } from "../utils/eventLogger";
-import catchAsync from "../utils/catchAsync";
-import prisma from "../../client";
-import { paginate } from "../utils/paginate";
-import Response from "../utils/response";
+import { addLog } from "../../utils/eventLogger";
+import catchAsync from "../../utils/catchAsync";
+import prisma from "../../../client";
+import { paginate } from "../../utils/paginate";
+import Response from "../../utils/response";
 import {
   BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
-} from "../utils/exception";
+} from "../../utils/exception";
 
 export default class ProductController {
   static findProductById = async (id: string) => {
