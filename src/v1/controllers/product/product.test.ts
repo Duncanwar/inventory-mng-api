@@ -1,110 +1,153 @@
-import { NextFunction, Request, Response } from "express";
+import request from "supertest";
+import app from "../../../app";
+import prisma from "../../../client";
 import ProductController from "./product.controller";
-import prismaClient from "../../../client";
-import { paginate } from "../../utils/paginate";
+import { addLog } from "../../utils/eventLogger";
+import {
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from "../../utils/exception";
 
-jest.mock("../../utils/paginate");
-jest.mock("../../../client", () => ({
-  products: {
-    findUnique: jest.fn(),
-  },
-}));
+jest.mock("../../utils/eventLogger"); // Mock event logger
 
 describe("ProductController", () => {
-  describe("getProducts", () => {
-    let req: Partial<Request>;
-    let res: Partial<Response>;
-    let jsonMock: jest.Mock;
-    let statusMock: jest.Mock;
+  const mockProduct = {
+    ID: "123",
+    Name: "Test Product",
+    Quantity: 10,
+    Category: "Test Category",
+  };
 
-    beforeEach(() => {
-      jsonMock = jest.fn();
-      statusMock = jest.fn(() => ({ json: jsonMock })) as any;
-      res = { status: statusMock, json: jsonMock };
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-      req = {
-        query: {
-          page: "1",
-          size: "10",
-          Category: "Electronics",
-          minQuantity: "5",
-          maxQuantity: "20",
-        },
-      };
-    });
+  describe("createOneProduct", () => {
+    it("should create a product successfully", async () => {
+      jest.spyOn(prisma.products, "findUnique").mockResolvedValueOnce(null); // Product doesn't exist
+      jest.spyOn(prisma.products, "create").mockResolvedValueOnce(mockProduct); // Mock product creation
 
-    it("should return products successfully", async () => {
-      const mockProducts = [
-        { id: "1", name: "Product 1", Category: "Electronics", Quantity: 10 },
-        { id: "2", name: "Product 2", Category: "Electronics", Quantity: 15 },
-      ];
-      (paginate as jest.Mock).mockResolvedValueOnce(mockProducts);
-      const next: any = jest.fn();
-      ProductController.getAllProducts(req as Request, res as Response, next);
-
-      expect(paginate).toHaveBeenCalledWith(prismaClient.products, 1, 10, {
-        Category: "Electronics",
-        Quantity: { lt: 20 },
+      const response = await request(app).post("/api/v1/products").send({
+        Name: "Test Product",
+        Quantity: 10,
+        Category: "Test Category",
       });
-      expect(statusMock).toHaveBeenCalledWith(200);
-      expect(jsonMock).toHaveBeenCalledWith({
-        message: "Retrieve Products",
-        data: mockProducts,
-      });
-    });
-
-    it("should handle errors gracefully", async () => {
-      const error = new Error("Database error");
-      (paginate as jest.Mock).mockRejectedValueOnce(error);
-      const next: any = jest.fn();
-      await ProductController.getAllProducts(
-        req as Request,
-        res as Response,
-        next
+      console.log(response, "create");
+      expect(response.status).toBe(201);
+      expect(response.body.message).toBe("Product created");
+      expect(addLog).toHaveBeenCalledWith(
+        "Added",
+        mockProduct.ID,
+        expect.any(Object)
       );
+    });
 
-      expect(statusMock).toHaveBeenCalledWith(500);
-      expect(jsonMock).toHaveBeenCalledWith({
-        message: "An error occurred",
-        error: error.message,
+    it("should return conflict error if product already exists", async () => {
+      jest
+        .spyOn(prisma.products, "findUnique")
+        .mockResolvedValueOnce(mockProduct); // Product exists
+
+      const response = await request(app).post("/api/v1/products").send({
+        Name: "Test Product",
+        Quantity: 10,
+        Category: "Test Category",
       });
+
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe("Product already exists");
     });
   });
-  //   const res = {} as Response;
-  //   res.status = jest.fn().mockReturnValue(res);
-  //   res.json = jest.fn().mockReturnValue(res);
-  //   return res;
-  // };
 
-  // it("should return 400 if id is not provided", async () => {
-  //   const req = { params: {} } as Request;
-  //   const res = mockResponse();
+  describe("updateOneProduct", () => {
+    it("should update the product successfully", async () => {
+      jest
+        .spyOn(prisma.products, "findUnique")
+        .mockResolvedValueOnce(mockProduct); // Product exists
+      jest
+        .spyOn(prisma.products, "update")
+        .mockResolvedValueOnce({ ...mockProduct, Quantity: 20 });
 
-  //   // Assuming findProductById would return 400 status for missing id
-  //   await expect(ProductController.findProductById("")).rejects.toThrowError(
-  //     "Missing required parameter: id"
-  //   );
-  // });
+      const response = await request(app)
+        .patch("/api/v1/products/123")
+        .send({ Quantity: 20 });
 
-  // it("should return 200 with product data if id is valid", async () => {
-  //   const req = { params: { id: "valid-product-id" } } as unknown as Request;
-  //   const res = mockResponse();
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("Updated");
+      expect(addLog).toHaveBeenCalledWith("Updated", "123", expect.any(Object));
+    });
 
-  //   const mockProduct = { ID: "valid-product-id", Name: "Sample Product" };
-  //   (prismaClient.products.findUnique as jest.Mock).mockResolvedValue(
-  //     mockProduct
-  //   );
+    it("should throw a NotFoundException if product is not found", async () => {
+      jest.spyOn(prisma.products, "findUnique").mockResolvedValueOnce(null); // Product does not exist
 
-  //   const product = await ProductController.findProductById("valid-product-id");
+      const response = await request(app)
+        .patch("/api/v1/products/123")
+        .send({ Quantity: 20 });
 
-  //   expect(product).toEqual(mockProduct);
-  // });
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe("Product not Found");
+    });
+  });
 
-  // it("should return 404 if product is not found", async () => {
-  //   (prismaClient.products.findUnique as jest.Mock).mockResolvedValue(null);
+  describe("deleteOneProduct", () => {
+    it("should delete the product successfully", async () => {
+      jest
+        .spyOn(prisma.products, "findUnique")
+        .mockResolvedValueOnce(mockProduct); // Product exists
+      jest.spyOn(prisma.products, "delete").mockResolvedValueOnce(mockProduct);
 
-  //   await expect(
-  //     ProductController.findProductById("non-existing-id")
-  //   ).rejects.toThrowError("Product not found");
-  // });
+      const response = await request(app).delete("/api/v1/products/123");
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("Deleted");
+      expect(addLog).toHaveBeenCalledWith("Deleted", "123", expect.any(Object));
+    });
+
+    it("should throw NotFoundException if product does not exist", async () => {
+      jest.spyOn(prisma.products, "findUnique").mockResolvedValueOnce(null); // Product does not exist
+
+      const response = await request(app).delete("/api/v1/products/123");
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe("Product not Found");
+    });
+  });
+
+  describe("getOneProduct", () => {
+    it("should retrieve the product successfully", async () => {
+      jest
+        .spyOn(prisma.products, "findUnique")
+        .mockResolvedValueOnce(mockProduct); // Product exists
+
+      const response = await request(app).get("/api/v1/products/123");
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("retrieve");
+      expect(response.body.data).toEqual(mockProduct);
+    });
+
+    it("should throw NotFoundException if product is not found", async () => {
+      jest.spyOn(prisma.products, "findUnique").mockResolvedValueOnce(null); // Product does not exist
+
+      const response = await request(app).get("/api/v1/products/123");
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe("Product not Found");
+    });
+  });
+
+  describe("getAllProducts", () => {
+    it("should retrieve a list of products with pagination", async () => {
+      jest
+        .spyOn(prisma.products, "findMany")
+        .mockResolvedValueOnce([mockProduct, mockProduct]); // Mock product list
+
+      const response = await request(app).get("/api/v1/products?page=1&size=2");
+
+      expect(response.status).toBe(200);
+      expect(response.body.message).toBe("Retrieve Products");
+      expect(response.body.data).toHaveLength(2);
+    });
+  });
 });
