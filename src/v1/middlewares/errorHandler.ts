@@ -13,7 +13,7 @@ export default class ErrorHandler {
       try {
         await Promise.resolve(handler(req, res, next));
       } catch (error) {
-        console.log({ error });
+        console.error({ error });
         next(error);
       }
     };
